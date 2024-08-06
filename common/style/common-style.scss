@@ -1,0 +1,12 @@
+//组件样式
+//需要导入App.vue
+view,swiper,swiper-item{
+	box-sizing: border-box;
+}
+
+.pageBg{
+	background: 
+	linear-gradient(to bottom,transparent,#fff 400rpx),	//transparent透明色，白色400rpx时开始
+	linear-gradient(to right,#beecd8 20%,#F4E2D8);
+	min-height: 80vh;
+}
