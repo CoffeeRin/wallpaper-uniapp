@@ -2,15 +2,66 @@
 	<view class="noticeLayout">
 		<view class="title">
 			<view class="tag">
-				<uni-tag text="置顶" type="error" inverteds></uni-tag>
+				<uni-tag text="置顶" type="error" inverteds v-if="detail.select"></uni-tag>
 			</view>
-			<view class="font">xx</view>
+			<view class="font">{{detail.title}}</view>
+		</view>
+
+		<view class="info">
+			<view class="item">{{detail.author}}</view>
+			<view class="item">
+				<uni-dateformat :date="detail.publish_date" format="yyyy-MM-dd hh:mm:ss"></uni-dateformat>
+			</view>
+		</view>
+
+
+		<view class="content">
+			<mp-html :content="detail.content" />
+			<!-- <rich-text :nodes="detail.content"></rich-text> -->
+		</view>
+
+		<view class="count">
+			阅读 {{detail.view_count}}
 		</view>
 	</view>
 </template>
 
 <script setup>
+	import {
+		apiNoticeDetail
+	} from '../../api/apis.js'
+	import {
+		ref
+	} from 'vue'
+	import {
+		onLoad
+	} from '@dcloudio/uni-app'
 
+	const detail = ref({})
+	let noticeId
+	let name
+
+	onLoad((e)=>{
+		noticeId = e.id
+		if(e.name){
+			name = e.name
+			uni.setNavigationBarTitle({
+				title:name
+			})
+		}
+		// 在onLoad赋值后再调用接口
+		getNoticeDetail()
+	})
+
+	// 获取公告详情
+	const getNoticeDetail = () => {
+		apiNoticeDetail({
+			id: noticeId	
+		}).then(res => {
+			detail.value = res.data
+			console.log(res)
+		})
+	}
 </script>
 
 <style lang="scss" scoped>
@@ -33,6 +84,26 @@
 			.font {
 				padding-left: 6rpx;
 			}
+		}
+
+		.info {
+			display: flex;
+			align-items: center;
+			color: #999;
+			font-size: 28rpx;
+
+			.item {
+				padding-right: 20rpx;
+			}
+		}
+
+		.content {
+			padding: 50rpx 0;
+		}
+
+		.count {
+			color: #999;
+			font-size: 28rpx;
 		}
 	}
 </style>

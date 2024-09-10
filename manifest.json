@@ -1,5 +1,5 @@
 {
-    "name" : "xxm_wallpaper",
+    "name" : "coffeelin_wallpaper",
     "appid" : "__UNI__9FA8E30",
     "description" : "",
     "versionName" : "1.0.0",
@@ -68,5 +68,12 @@
     "uniStatistics" : {
         "enable" : false
     },
-    "vueVersion" : "3"
+    "vueVersion" : "3",
+    "h5" : {
+        "title" : "CoffeeLin壁纸",
+        "router" : {
+            "mode" : "hash",
+            "base" : "/coffeelinwall/"
+        }
+    }
 }

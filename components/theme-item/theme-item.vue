@@ -1,9 +1,9 @@
 <template>
 	<view class="themeItem">
-		<navigator url="/pages/classlist/classlist" class="box" v-if="!isMore">
-			<image class="pic" src="../../common/images/preview_small.webp" mode="aspectFill"></image>
-			<view class="tab">20小时前更新</view>
-			<view class="mask">猫猫狗狗</view>
+		<navigator :url="'/pages/classlist/classlist?id='+ item._id + '&name=' + item.name" class="box" v-if="!isMore">
+			<image class="pic" :src="item.picurl" mode="aspectFill"></image>
+			<view class="mask">{{item.name}}</view>
+			<view class="tab" v-if="compareTimestamp(item.updateTime)">{{compareTimestamp(item.updateTime)}}前更新</view>
 		</navigator>
 
 		<!-- 跳转到tabBar页面，open-type="switchTab" -->
@@ -18,10 +18,22 @@
 </template>
 
 <script setup>
+import {compareTimestamp} from '../../utils/common.js'
+	
 defineProps({
 	isMore:{
 		type:Boolean,
 		default: false
+	},
+	item:{
+		type:Object,
+		default(){
+			return{
+				name:"默认名称",
+				picture:"../../common/images/preview_small.webp",
+				updateTime:Date.now() - 1000*60*60*5
+			}
+		}
 	}
 })
 </script>

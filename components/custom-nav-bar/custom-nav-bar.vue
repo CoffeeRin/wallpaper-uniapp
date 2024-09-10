@@ -5,7 +5,7 @@
 			<view class="statusBar" :style="{height:getStatusBarHeight() + 'px'}"></view>
 			<view class="titleBar" :style="{height:getTitleBarHeight() + 'px',marginLeft:getLeftIconLeft()+'px'}">
 				<view class="title">{{title}}</view>
-				<view class="search">
+				<view class="search" @click="search">
 					<uni-icons class="icon" type="search" color="#888" size="18"></uni-icons>
 					<view class="text">搜索</view>
 				</view>
@@ -26,6 +26,13 @@ defineProps({
 		default:""
 	}
 })
+
+// 跳转搜索页
+const search = () => {
+	uni.navigateTo({
+		url:"/pages/search/search"
+	})
+}
 </script>
 
 <style lang="scss" scoped>

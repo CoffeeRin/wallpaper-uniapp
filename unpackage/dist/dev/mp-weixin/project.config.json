@@ -18,9 +18,9 @@
     }
   },
   "compileType": "miniprogram",
-  "libVersion": "3.5.1",
+  "libVersion": "3.5.3",
   "appid": "wx6471dd10b0deea1f",
-  "projectname": "xxm_wallpaper",
+  "projectname": "coffeelin_wallpaper",
   "condition": {
     "search": {
       "current": -1,

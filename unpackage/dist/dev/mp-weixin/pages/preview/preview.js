@@ -1,7 +1,7 @@
 "use strict";
 const common_vendor = require("../../common/vendor.js");
-const common_assets = require("../../common/assets.js");
 const utils_system = require("../../utils/system.js");
+const api_apis = require("../../api/apis.js");
 if (!Array) {
   const _easycom_uni_icons2 = common_vendor.resolveComponent("uni-icons");
   const _easycom_uni_dateformat2 = common_vendor.resolveComponent("uni-dateformat");
@@ -20,6 +20,8 @@ const _sfc_main = {
   __name: "preview",
   setup(__props) {
     const userScore = common_vendor.ref(0);
+    const isScore = common_vendor.ref(false);
+    const currentInfo = common_vendor.ref(null);
     const maskState = common_vendor.ref(true);
     const maskChange = () => {
       maskState.value = !maskState.value;
@@ -33,97 +35,282 @@ const _sfc_main = {
     };
     const ratePopup = common_vendor.ref(null);
     const openRatePopup = () => {
+      if (currentInfo.value.userScore) {
+        isScore.value = true;
+        userScore.value = currentInfo.value.userScore;
+      }
       ratePopup.value.open();
     };
     const closeRatePopup = () => {
       ratePopup.value.close();
+      userScore.value = 0;
+      isScore.value = false;
     };
-    const submitScore = () => {
+    const submitScore = async () => {
+      common_vendor.index.showLoading({
+        title: "加载中..."
+      });
+      const {
+        classid,
+        _id: wallId
+      } = currentInfo.value;
+      const res = await api_apis.apiGetSetupScore({
+        classid,
+        wallId,
+        userScore: userScore.value
+      });
+      common_vendor.index.hideLoading();
+      if (res.errCode === 0) {
+        common_vendor.index.showToast({
+          title: "评分成功",
+          icon: "success"
+        });
+        classList.value[currentIndex.value].userScore = userScore.value;
+        common_vendor.index.setStorageSync("storageClassList", classList.value);
+      }
+      closeRatePopup();
     };
     const goback = () => {
-      common_vendor.index.navigateBack();
+      common_vendor.index.navigateBack({
+        success: () => {
+        },
+        fail: () => {
+          common_vendor.index.reLaunch({
+            url: "/pages/index/index"
+          });
+        }
+      });
     };
-    return (_ctx, _cache) => {
+    const clickDownload = async () => {
+      try {
+        common_vendor.index.showLoading({
+          title: "下载中...",
+          mask: true
+        });
+        const {
+          classid,
+          _id: wallId
+        } = currentInfo.value;
+        const res = await api_apis.apiDownLoadRecord({
+          classid,
+          wallId
+        });
+        if (res.errCode !== 0)
+          throw res;
+        common_vendor.index.getImageInfo({
+          src: currentInfo.value.picurl,
+          success: (res2) => {
+            common_vendor.index.saveImageToPhotosAlbum({
+              filePath: res2.path,
+              success: (res3) => {
+                common_vendor.index.showToast({
+                  title: "保存成功",
+                  icon: "none"
+                });
+              },
+              fail: (err) => {
+                if (err.errMsg === "saveImageToPhotosAlbum:fail cancel") {
+                  common_vendor.index.showToast({
+                    title: "保存失败",
+                    icon: "none"
+                  });
+                  return;
+                }
+                common_vendor.index.showModal({
+                  title: "授权提示",
+                  content: "需要授权相册",
+                  success: (res3) => {
+                    if (res3.confirm) {
+                      common_vendor.index.openSetting({
+                        success(setting) {
+                          if (setting.authSetting["scope.writePhotosAlbum"]) {
+                            common_vendor.index.showToast({
+                              title: "授权成功",
+                              icon: "none"
+                            });
+                          } else {
+                            common_vendor.index.showToast({
+                              title: "授权失败",
+                              icon: "none"
+                            });
+                          }
+                        }
+                      });
+                    }
+                  }
+                });
+              },
+              complete: () => {
+                common_vendor.index.hideLoading();
+              }
+            });
+          }
+        });
+      } catch (err) {
+        console.log(err);
+        common_vendor.index.hideLoading();
+      }
+    };
+    const storageClassList = common_vendor.index.getStorageSync("storageClassList") || [];
+    const classList = common_vendor.ref([]);
+    classList.value = storageClassList.map((item) => {
       return {
-        a: common_vendor.f(8, (item, k0, i0) => {
-          return {};
+        ...item,
+        picurl: item.smallPicurl.replace("_small.webp", ".jpg")
+      };
+    });
+    const currentId = common_vendor.ref(null);
+    const currentIndex = common_vendor.ref(null);
+    const readImgs = common_vendor.ref([]);
+    const readImgsFun = () => {
+      readImgs.value.push(
+        currentIndex.value <= 0 ? classList.value.length - 1 : currentIndex.value - 1,
+        currentIndex.value,
+        currentIndex.value >= classList.value.length - 1 ? 0 : currentIndex.value + 1
+      );
+      readImgs.value = [...new Set(readImgs.value)];
+    };
+    common_vendor.onLoad(async (e) => {
+      currentId.value = e.id;
+      if (e.type === "share") {
+        const res = await api_apis.apiDetailWall({
+          id: currentId.value
+        });
+        classList.value = res.data.map((item) => {
+          return {
+            ...item,
+            picurl: item.smallPicurl.replace("_small.webp", ".jpg")
+          };
+        });
+      }
+      currentIndex.value = classList.value.findIndex((item) => item._id === currentId.value);
+      currentInfo.value = classList.value[currentIndex.value];
+      readImgsFun();
+    });
+    const onChange = (e) => {
+      currentIndex.value = e.detail.current;
+      currentInfo.value = classList.value[currentIndex.value];
+      readImgsFun();
+    };
+    common_vendor.onShareAppMessage((e) => {
+      return {
+        title: `CoffeeLin壁纸`,
+        path: `/pages/preview/preview?id=${currentId.value}&type=share`
+      };
+    });
+    common_vendor.onShareTimeline(() => {
+      return {
+        title: "CoffeeLin壁纸",
+        query: `id=${currentId.value}&type=share`
+      };
+    });
+    return (_ctx, _cache) => {
+      return common_vendor.e({
+        a: currentInfo.value
+      }, currentInfo.value ? common_vendor.e({
+        b: common_vendor.f(classList.value, (item, index, i0) => {
+          return common_vendor.e({
+            a: readImgs.value.includes(index)
+          }, readImgs.value.includes(index) ? {
+            b: common_vendor.o(maskChange, item._id),
+            c: item.picurl
+          } : {}, {
+            d: item._id
+          });
         }),
-        b: common_vendor.o(maskChange),
-        c: common_assets._imports_0$1,
-        d: common_vendor.p({
+        c: currentIndex.value,
+        d: common_vendor.o(onChange),
+        e: common_vendor.p({
           type: "back",
           color: "#fff",
           size: "20"
         }),
-        e: common_vendor.unref(utils_system.getStatusBarHeight)() + "px",
-        f: common_vendor.o(goback),
-        g: common_vendor.p({
+        f: common_vendor.unref(utils_system.getStatusBarHeight)() + "px",
+        g: common_vendor.o(goback),
+        h: common_vendor.t(currentIndex.value + 1),
+        i: common_vendor.t(classList.value.length),
+        j: common_vendor.p({
           date: Date.now(),
           format: "hh:mm"
         }),
-        h: common_vendor.p({
+        k: common_vendor.p({
           date: Date.now(),
           format: "MM月dd日"
         }),
-        i: common_vendor.p({
+        l: common_vendor.p({
           type: "info",
           size: "23"
         }),
-        j: common_vendor.o(openInfo),
-        k: common_vendor.p({
+        m: common_vendor.o(openInfo),
+        n: common_vendor.p({
           type: "star",
           size: "23"
         }),
-        l: common_vendor.o(openRatePopup),
-        m: common_vendor.p({
+        o: common_vendor.t(currentInfo.value.score),
+        p: common_vendor.o(openRatePopup),
+        q: common_vendor.p({
           type: "download",
           size: "23"
         }),
-        n: maskState.value,
-        o: common_vendor.p({
+        r: common_vendor.o(clickDownload),
+        s: maskState.value,
+        t: common_vendor.p({
           type: "closeempty",
           size: "18",
           color: "#999"
         }),
-        p: common_vendor.o(closeInfoPopup),
-        q: common_vendor.o(_ctx.onChange),
-        r: common_vendor.o(($event) => _ctx.value = $event),
-        s: common_vendor.p({
-          modelValue: _ctx.value
+        v: common_vendor.o(closeInfoPopup),
+        w: currentInfo.value
+      }, currentInfo.value ? {
+        x: common_vendor.t(currentInfo.value._id),
+        y: common_vendor.t(currentInfo.value.nickname),
+        z: common_vendor.p({
+          readonly: true,
+          touchable: true,
+          value: currentInfo.value.score,
+          size: "16"
         }),
-        t: common_vendor.f(3, (item, k0, i0) => {
-          return {};
-        }),
-        v: common_vendor.sr(infoPopup, "2dad6c07-6", {
+        A: common_vendor.t(currentInfo.value.score),
+        B: common_vendor.t(currentInfo.value.description),
+        C: common_vendor.f(currentInfo.value.tabs, (item, k0, i0) => {
+          return {
+            a: common_vendor.t(item)
+          };
+        })
+      } : {}, {
+        D: common_vendor.sr(infoPopup, "2dad6c07-6", {
           "k": "infoPopup"
         }),
-        w: common_vendor.p({
+        E: common_vendor.p({
           type: "bottom"
         }),
-        x: common_vendor.p({
+        F: common_vendor.t(isScore.value ? "评分过了~" : "壁纸评分"),
+        G: common_vendor.p({
           type: "closeempty",
           size: "18",
           color: "#999"
         }),
-        y: common_vendor.o(closeRatePopup),
-        z: common_vendor.o(_ctx.onChange),
-        A: common_vendor.o(($event) => userScore.value = $event),
-        B: common_vendor.p({
+        H: common_vendor.o(closeRatePopup),
+        I: common_vendor.o(onChange),
+        J: common_vendor.o(($event) => userScore.value = $event),
+        K: common_vendor.p({
           allowHalf: true,
+          readonly: isScore.value,
           modelValue: userScore.value
         }),
-        C: common_vendor.t(userScore.value),
-        D: common_vendor.o(submitScore),
-        E: !userScore.value,
-        F: common_vendor.sr(ratePopup, "2dad6c07-9", {
+        L: common_vendor.t(userScore.value),
+        M: common_vendor.o(submitScore),
+        N: !userScore.value || isScore.value,
+        O: common_vendor.sr(ratePopup, "2dad6c07-9", {
           "k": "ratePopup"
         }),
-        G: common_vendor.p({
+        P: common_vendor.p({
           ["is-mask-click"]: false
         })
-      };
+      }) : {});
     };
   }
 };
 const MiniProgramPage = /* @__PURE__ */ common_vendor._export_sfc(_sfc_main, [["__scopeId", "data-v-2dad6c07"]]);
+_sfc_main.__runtimeHooks = 6;
 wx.createPage(MiniProgramPage);
